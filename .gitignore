@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+dist/
+*.test
+coverage.out
+
+# Go
+*.exe
+
+# Environment files
+.env
+.env.local
+.env.*.local
+pve.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Secrets
+*.pem
+*.key
+
+# AI tool directories
+.claude
+.serena
+.trae

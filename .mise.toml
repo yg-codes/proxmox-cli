@@ -1,0 +1,15 @@
+[tasks.build]
+description = "Build the pve binary"
+run = "make build"
+
+[tasks.install]
+description = "Install pve to GOPATH/bin"
+depends = ["build"]
+run = "make install"
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "make clean"
+
+[tools]
+golangci-lint = "2.13.1"
