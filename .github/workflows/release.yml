@@ -9,7 +9,33 @@ permissions:
   contents: write
 
 jobs:
+  validate:
+    # Gate: no artifacts are built or published until tests pass and the
+    # tagged tree is secret-scanned. The release job builds from the exact
+    # tag commit (actions/checkout on the tag ref).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   goreleaser:
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
