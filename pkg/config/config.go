@@ -81,7 +81,7 @@ var defaultConfig = Config{
 	Logging: LoggingConfig{
 		Level:  "info",
 		Format: "text",
-		Output: "stdout",
+		Output: "stderr", // diagnostics off stdout: stdout carries command output only
 	},
 	CLI: CLIConfig{
 		BatchMode:    false,

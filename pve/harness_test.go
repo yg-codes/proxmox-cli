@@ -409,9 +409,9 @@ func execCLI(t *testing.T, f *apiFixture, args ...string) (string, error) {
 	resetCommandFlags(rootCmd)
 	rootCmd.SetArgs(args)
 
-	// Capture stdout BEFORE Execute: SetupLogger (inside initializeApp) binds
-	// the logger to the current os.Stdout, so handler and log output are both
-	// captured.
+	// Capture stdout BEFORE Execute so handler output is captured. Log lines go
+	// to os.Stderr (the default Logging.Output), which SetupLogger binds at
+	// call time; wrap execCLI in captureStderr to assert on them.
 	oldStdout := os.Stdout
 	r, w, errPipe := os.Pipe()
 	if errPipe != nil {
@@ -450,4 +450,26 @@ func execCLIAsync(t *testing.T, f *apiFixture, args ...string) <-chan execResult
 type execResult struct {
 	stdout string
 	err    error
+}
+
+// captureStderr runs fn with os.Stderr redirected to a pipe and returns what
+// was written. Redirect BEFORE fn so SetupLogger (which binds the logger to
+// the current os.Stderr) writes into the capture.
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+	old := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stderr = w
+	done := make(chan string, 1)
+	go func() {
+		b, _ := io.ReadAll(r)
+		done <- string(b)
+	}()
+	defer func() { os.Stderr = old }()
+	fn()
+	_ = w.Close()
+	return <-done
 }

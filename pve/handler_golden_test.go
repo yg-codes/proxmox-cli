@@ -81,7 +81,10 @@ func TestHandlerSnapshotDeleteAllPartialFailure(t *testing.T) {
 	f.addVM("101", "vm-101", "running", "snap-a")
 	f.failSnapDel["101:snap-a"] = true
 
-	out, err := execCLI(t, f, "vm", "snapshot", "delete", "--vmid", "100,101", "--all", "-y")
+	var err error
+	stderr := captureStderr(t, func() {
+		_, err = execCLI(t, f, "vm", "snapshot", "delete", "--vmid", "100,101", "--all", "-y")
+	})
 
 	if err == nil {
 		t.Fatal("snapshot delete --all with one failed VM: err=nil, want non-zero exit")
@@ -89,8 +92,9 @@ func TestHandlerSnapshotDeleteAllPartialFailure(t *testing.T) {
 	if !strings.Contains(err.Error(), "101") {
 		t.Errorf("exit error %q does not name failed VM 101", err)
 	}
-	if !strings.Contains(out, "Failed to delete all snapshots") {
-		t.Error("stdout missing the per-VM failure line")
+	// Logged via logger.Errorf, so it reaches the operator on stderr.
+	if !strings.Contains(stderr, "Failed to delete all snapshots") {
+		t.Error("stderr missing the per-VM failure line")
 	}
 	if got := f.snaps("100"); len(got) != 0 {
 		t.Errorf("VM 100 snaps=%v, want all deleted", got)
