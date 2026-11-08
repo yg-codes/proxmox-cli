@@ -10,22 +10,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 )
 
 // The zero-value ClientConfig must verify certificates: library callers that
 // never mention TLS get a secure client. Skipping verification is an explicit
-// opt-in, and it must be announced with a warning.
+// opt-in. The library must not log about it: the CLI owns that warning and
+// routes it to stderr (see pve/tls_warning_test.go).
 func TestClientTLSVerification(t *testing.T) {
 	cases := []struct {
 		name     string
 		cfg      ClientConfig
 		wantSkip bool
-		wantWarn bool
 	}{
-		{name: "zero value verifies", cfg: ClientConfig{}, wantSkip: false, wantWarn: false},
-		{name: "explicit insecure skips and warns", cfg: ClientConfig{InsecureSkipVerify: true}, wantSkip: true, wantWarn: true},
+		{name: "zero value verifies", cfg: ClientConfig{}, wantSkip: false},
+		{name: "explicit insecure skips", cfg: ClientConfig{InsecureSkipVerify: true}, wantSkip: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -51,14 +50,8 @@ func TestClientTLSVerification(t *testing.T) {
 				t.Errorf("transport InsecureSkipVerify=%v, want %v", got, tc.wantSkip)
 			}
 
-			warned := false
-			for _, e := range hook.AllEntries() {
-				if e.Level == logrus.WarnLevel {
-					warned = true
-				}
-			}
-			if warned != tc.wantWarn {
-				t.Errorf("warning emitted=%v, want %v (entries: %d)", warned, tc.wantWarn, len(hook.AllEntries()))
+			if n := len(hook.AllEntries()); n != 0 {
+				t.Errorf("NewClient logged %d entries, want 0 (library must not write to the caller's logger output)", n)
 			}
 		})
 	}

@@ -215,6 +215,14 @@ func (f *apiFixture) handleQemu(w http.ResponseWriter, r *http.Request, parts []
 	vmid := parts[3]
 
 	switch {
+	case len(parts) == 6 && parts[4] == "agent" && r.Method == http.MethodGet: // guest-agent query
+		f.writeJSON(w, map[string]interface{}{
+			"data": map[string]interface{}{
+				"result": map[string]interface{}{"name": "Debian GNU/Linux", "kernel-release": "6.1.0"},
+			},
+		})
+		return
+
 	case len(parts) == 6 && parts[4] == "status" && parts[5] == "current" && r.Method == http.MethodGet:
 		f.mu.Lock()
 		vm := f.vms[vmid]

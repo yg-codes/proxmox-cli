@@ -561,7 +561,13 @@ func initializeApp(cmd *cobra.Command, args []string) error {
 	}
 
 	// Initialize API client
-	client = api.NewClient(buildClientConfig(cfg, logger))
+	clientCfg := buildClientConfig(cfg, logger)
+	if clientCfg.InsecureSkipVerify {
+		// Straight to stderr, not the logger: the logger defaults to stdout,
+		// which batch consumers parse as command output.
+		fmt.Fprintf(os.Stderr, "WARNING: TLS certificate verification is DISABLED for %s (PVE_VERIFY_SSL=false) — connections can be intercepted; prefer PVE_CA_CERT\n", clientCfg.Host)
+	}
+	client = api.NewClient(clientCfg)
 	if err := client.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to Proxmox API: %w", err)
 	}
