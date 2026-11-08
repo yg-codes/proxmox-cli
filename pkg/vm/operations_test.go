@@ -64,6 +64,8 @@ func newTaskTestOps(t *testing.T) *Operations {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 	client := api.NewClient(&api.ClientConfig{
+		// Trust the httptest server certificate: verification stays on.
+		CACert:     srv.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs,
 		Host:       host,
 		Port:       port,
 		Username:   "root@pam",
@@ -190,7 +192,9 @@ func newDiscoveryOps(t *testing.T, failPVE2 bool) *Operations {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 	client := api.NewClient(&api.ClientConfig{
-		Host: host, Port: port,
+		// Trust the httptest server certificate: verification stays on.
+		CACert: srv.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs,
+		Host:   host, Port: port,
 		Username: "root@pam", TokenName: "test", TokenValue: "secret",
 		Logger: logger,
 	})

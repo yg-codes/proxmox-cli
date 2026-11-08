@@ -60,10 +60,15 @@ type ClientConfig struct {
 	Password   string
 	TokenName  string
 	TokenValue string
-	VerifySSL  bool
-	CACert     *x509.CertPool // optional RootCAs for private-CA verification; nil = system roots
-	Timeout    time.Duration
-	Logger     *logrus.Logger
+	// InsecureSkipVerify disables TLS certificate verification. The zero
+	// value (false) verifies, so a ClientConfig built without setting it is
+	// secure. Setting it permits man-in-the-middle interception; prefer CACert
+	// for hosts signed by a private CA. Like crypto/tls, the client does not
+	// log about it; warning the operator is the caller's job.
+	InsecureSkipVerify bool
+	CACert             *x509.CertPool // optional RootCAs for private-CA verification; nil = system roots
+	Timeout            time.Duration
+	Logger             *logrus.Logger
 }
 
 // NewClient creates a new Proxmox API client
@@ -87,7 +92,7 @@ func NewClient(config *ClientConfig) *Client {
 			Timeout: config.Timeout,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: !config.VerifySSL,
+					InsecureSkipVerify: config.InsecureSkipVerify,
 					RootCAs:            config.CACert,
 				},
 			},

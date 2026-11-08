@@ -561,7 +561,13 @@ func initializeApp(cmd *cobra.Command, args []string) error {
 	}
 
 	// Initialize API client
-	client = api.NewClient(buildClientConfig(cfg, logger))
+	clientCfg := buildClientConfig(cfg, logger)
+	if clientCfg.InsecureSkipVerify {
+		// Straight to stderr, not the logger: the logger defaults to stdout,
+		// which batch consumers parse as command output.
+		fmt.Fprintf(os.Stderr, "WARNING: TLS certificate verification is DISABLED for %s (PVE_VERIFY_SSL=false) — connections can be intercepted; prefer PVE_CA_CERT\n", clientCfg.Host)
+	}
+	client = api.NewClient(clientCfg)
 	if err := client.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to Proxmox API: %w", err)
 	}
@@ -581,16 +587,16 @@ func initializeApp(cmd *cobra.Command, args []string) error {
 // (VerifySSL, Timeout, credentials, port) are unit-testable.
 func buildClientConfig(c *config.Config, log *logrus.Logger) *api.ClientConfig {
 	return &api.ClientConfig{
-		Host:       c.Proxmox.Host,
-		Port:       c.Proxmox.Port,
-		Username:   c.Proxmox.Username,
-		Password:   c.Proxmox.Password,
-		TokenName:  c.Proxmox.TokenName,
-		TokenValue: c.Proxmox.TokenValue,
-		VerifySSL:  c.Proxmox.VerifySSL,
-		CACert:     c.Proxmox.CACertPool,
-		Timeout:    c.Proxmox.Timeout,
-		Logger:     log,
+		Host:               c.Proxmox.Host,
+		Port:               c.Proxmox.Port,
+		Username:           c.Proxmox.Username,
+		Password:           c.Proxmox.Password,
+		TokenName:          c.Proxmox.TokenName,
+		TokenValue:         c.Proxmox.TokenValue,
+		InsecureSkipVerify: !c.Proxmox.VerifySSL,
+		CACert:             c.Proxmox.CACertPool,
+		Timeout:            c.Proxmox.Timeout,
+		Logger:             log,
 	}
 }
 
