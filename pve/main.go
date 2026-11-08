@@ -581,16 +581,16 @@ func initializeApp(cmd *cobra.Command, args []string) error {
 // (VerifySSL, Timeout, credentials, port) are unit-testable.
 func buildClientConfig(c *config.Config, log *logrus.Logger) *api.ClientConfig {
 	return &api.ClientConfig{
-		Host:       c.Proxmox.Host,
-		Port:       c.Proxmox.Port,
-		Username:   c.Proxmox.Username,
-		Password:   c.Proxmox.Password,
-		TokenName:  c.Proxmox.TokenName,
-		TokenValue: c.Proxmox.TokenValue,
-		VerifySSL:  c.Proxmox.VerifySSL,
-		CACert:     c.Proxmox.CACertPool,
-		Timeout:    c.Proxmox.Timeout,
-		Logger:     log,
+		Host:               c.Proxmox.Host,
+		Port:               c.Proxmox.Port,
+		Username:           c.Proxmox.Username,
+		Password:           c.Proxmox.Password,
+		TokenName:          c.Proxmox.TokenName,
+		TokenValue:         c.Proxmox.TokenValue,
+		InsecureSkipVerify: !c.Proxmox.VerifySSL,
+		CACert:             c.Proxmox.CACertPool,
+		Timeout:            c.Proxmox.Timeout,
+		Logger:             log,
 	}
 }
 

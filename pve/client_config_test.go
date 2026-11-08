@@ -35,8 +35,13 @@ func TestBuildClientConfigJoins(t *testing.T) {
 	if cc.TokenName != "tok" || cc.TokenValue != "secret" {
 		t.Errorf("token join wrong: name=%q value=%q", cc.TokenName, cc.TokenValue)
 	}
-	if !cc.VerifySSL {
-		t.Error("VerifySSL=true did not reach ClientConfig (verification would be skipped)")
+	if cc.InsecureSkipVerify {
+		t.Error("VerifySSL=true produced InsecureSkipVerify=true (verification would be skipped)")
+	}
+
+	cfg.Proxmox.VerifySSL = false
+	if cc := buildClientConfig(cfg, logrus.New()); !cc.InsecureSkipVerify {
+		t.Error("VerifySSL=false did not reach ClientConfig as InsecureSkipVerify=true")
 	}
 	if cc.Timeout != 11*time.Second {
 		t.Errorf("Timeout=%v, want 11s", cc.Timeout)

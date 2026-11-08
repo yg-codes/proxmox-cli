@@ -97,6 +97,8 @@ func newBackupTestOps(t *testing.T, failDeleteVolid string) *Operations {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 	client := api.NewClient(&api.ClientConfig{
+		// Trust the httptest server certificate: verification stays on.
+		CACert:     srv.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs,
 		Host:       host,
 		Port:       port,
 		Username:   "root@pam",
