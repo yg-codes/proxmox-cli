@@ -1,6 +1,6 @@
 ---
 ticket: ""
-status: pending
+status: implementation_complete
 ---
 
 # Reporting integrity fixes
@@ -38,11 +38,28 @@ Only generic fixtures and public product information enter the repository/PR.
 ## Compatibility and rollback
 
 Storage listings/validators now fail closed on incomplete inventory, and table
-consumers must account for an added node column and node-scoped rows. The
-standard test suite must cover existing backup callers. Once the implementation
+consumers must account for an added node column and node-scoped rows. Shared
+storage also appears once per node; rows are not additive cluster capacity.
+A denied, unavailable or offline node can therefore block name-only backup
+validation even when the selected storage is usable elsewhere. Review identified
+this compatibility risk; silently skipping that node would reintroduce partial
+success. Keep the conservative behavior and cover it with validation tests. Once the implementation
 commit is the topic-branch tip, rollback is `git revert --no-edit HEAD` on this
 branch; do not discard working trees or modify infrastructure to undo code.
 
 ## Verification
 
-Pending implementation and validation.
+- Each of the three regression slices failed before its implementation change
+  and passed afterwards, using loopback-only TLS fixtures.
+- The original mock repro passes all five checks (including healthy controls).
+- `make test`, `make vet`, `go test -race ./...`, formatting and whitespace
+  checks pass with Go 1.27.4. A CLI build also passes with
+  `go build -o /tmp/proxmox-cli-reporting-fixed ./pve`.
+  Minimum-runtime compatibility was not tested locally.
+- `golangci-lint run` v2.13.1 is blocked locally: its importer supports export
+  data version 4, while the installed Go emits version 5. The same failure was
+  reproduced on an archive of the unchanged base revision
+  `c208d913dca5f592f90e9bcd70da7e5deaadf306`; lint is not claimed to pass.
+- Independent review completed; its offline-node compatibility finding is
+  recorded above. No infrastructure mutation or CLI installation was performed.
+- Publication and final remote CI result are pending.

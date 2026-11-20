@@ -113,7 +113,7 @@ func (ops *Operations) GetVMStorages() ([]*Storage, error) {
 		return nil, fmt.Errorf("invalid nodes response")
 	}
 
-	uniqueStorages := make(map[string]*Storage)
+	result := make([]*Storage, 0)
 
 	for _, nodeData := range nodes {
 		node, ok := nodeData.(map[string]interface{})
@@ -126,8 +126,7 @@ func (ops *Operations) GetVMStorages() ([]*Storage, error) {
 		// Get storages for this node
 		storagesResp, err := ops.client.Get(fmt.Sprintf("/nodes/%s/storage", nodeName), nil)
 		if err != nil {
-			ops.logger.Debugf("Failed to get storages for node %s: %v", nodeName, err)
-			continue
+			return nil, fmt.Errorf("failed to get storages for node %q: %w", nodeName, err)
 		}
 
 		// API client wraps array responses in "items" key
@@ -150,7 +149,7 @@ func (ops *Operations) GetVMStorages() ([]*Storage, error) {
 				nil,
 			)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("failed to get storage %q status on node %q: %w", storageName, nodeName, err)
 			}
 
 			// Status endpoint returns data directly at root level (no "data" wrapper)
@@ -161,39 +160,32 @@ func (ops *Operations) GetVMStorages() ([]*Storage, error) {
 				content = c
 			}
 
-			// Check if storage supports VM images or root directories
+			// Check if storage supports VM images or root directories.
 			if strings.Contains(content, "images") || strings.Contains(content, "rootdir") {
-				if _, exists := uniqueStorages[storageName]; !exists {
-					storageType := storage["type"].(string)
-					active := statusData["active"].(float64) == 1
+				storageType := storage["type"].(string)
+				active := statusData["active"].(float64) == 1
 
-					avail := 0.0
-					total := 0.0
-					if a, ok := statusData["avail"].(float64); ok {
-						avail = a / (1024 * 1024 * 1024) // Convert to GB
-					}
-					if t, ok := statusData["total"].(float64); ok {
-						total = t / (1024 * 1024 * 1024) // Convert to GB
-					}
-
-					uniqueStorages[storageName] = &Storage{
-						Name:         storageName,
-						Type:         storageType,
-						Node:         nodeName,
-						Active:       active,
-						ContentTypes: content,
-						AvailableGB:  avail,
-						TotalGB:      total,
-					}
+				avail := 0.0
+				total := 0.0
+				if a, ok := statusData["avail"].(float64); ok {
+					avail = a / (1024 * 1024 * 1024) // Convert to GB
 				}
+				if t, ok := statusData["total"].(float64); ok {
+					total = t / (1024 * 1024 * 1024) // Convert to GB
+				}
+
+				// A storage name identifies a different local pool on each node.
+				result = append(result, &Storage{
+					Name:         storageName,
+					Type:         storageType,
+					Node:         nodeName,
+					Active:       active,
+					ContentTypes: content,
+					AvailableGB:  avail,
+					TotalGB:      total,
+				})
 			}
 		}
-	}
-
-	// Convert map to slice
-	result := make([]*Storage, 0, len(uniqueStorages))
-	for _, storage := range uniqueStorages {
-		result = append(result, storage)
 	}
 
 	ops.logger.Infof("Found %d VM disk storages", len(result))
@@ -216,7 +208,7 @@ func (ops *Operations) GetBackupStorages() ([]*Storage, error) {
 		return nil, fmt.Errorf("invalid nodes response")
 	}
 
-	uniqueStorages := make(map[string]*Storage)
+	result := make([]*Storage, 0)
 
 	for _, nodeData := range nodes {
 		node, ok := nodeData.(map[string]interface{})
@@ -229,8 +221,7 @@ func (ops *Operations) GetBackupStorages() ([]*Storage, error) {
 		// Get storages for this node
 		storagesResp, err := ops.client.Get(fmt.Sprintf("/nodes/%s/storage", nodeName), nil)
 		if err != nil {
-			ops.logger.Debugf("Failed to get storages for node %s: %v", nodeName, err)
-			continue
+			return nil, fmt.Errorf("failed to get storages for node %q: %w", nodeName, err)
 		}
 
 		// API client wraps array responses in "items" key
@@ -253,7 +244,7 @@ func (ops *Operations) GetBackupStorages() ([]*Storage, error) {
 				nil,
 			)
 			if err != nil {
-				continue
+				return nil, fmt.Errorf("failed to get storage %q status on node %q: %w", storageName, nodeName, err)
 			}
 
 			// Status endpoint returns data directly at root level (no "data" wrapper)
@@ -264,39 +255,32 @@ func (ops *Operations) GetBackupStorages() ([]*Storage, error) {
 				content = c
 			}
 
-			// Check if storage supports backups
+			// Check if storage supports backups.
 			if strings.Contains(content, "backup") || strings.Contains(content, "vztmpl") {
-				if _, exists := uniqueStorages[storageName]; !exists {
-					storageType := storage["type"].(string)
-					active := statusData["active"].(float64) == 1
+				storageType := storage["type"].(string)
+				active := statusData["active"].(float64) == 1
 
-					avail := 0.0
-					total := 0.0
-					if a, ok := statusData["avail"].(float64); ok {
-						avail = a / (1024 * 1024 * 1024) // Convert to GB
-					}
-					if t, ok := statusData["total"].(float64); ok {
-						total = t / (1024 * 1024 * 1024) // Convert to GB
-					}
-
-					uniqueStorages[storageName] = &Storage{
-						Name:         storageName,
-						Type:         storageType,
-						Node:         nodeName,
-						Active:       active,
-						ContentTypes: content,
-						AvailableGB:  avail,
-						TotalGB:      total,
-					}
+				avail := 0.0
+				total := 0.0
+				if a, ok := statusData["avail"].(float64); ok {
+					avail = a / (1024 * 1024 * 1024) // Convert to GB
 				}
+				if t, ok := statusData["total"].(float64); ok {
+					total = t / (1024 * 1024 * 1024) // Convert to GB
+				}
+
+				// A storage name identifies a different local pool on each node.
+				result = append(result, &Storage{
+					Name:         storageName,
+					Type:         storageType,
+					Node:         nodeName,
+					Active:       active,
+					ContentTypes: content,
+					AvailableGB:  avail,
+					TotalGB:      total,
+				})
 			}
 		}
-	}
-
-	// Convert map to slice
-	result := make([]*Storage, 0, len(uniqueStorages))
-	for _, storage := range uniqueStorages {
-		result = append(result, storage)
 	}
 
 	ops.logger.Infof("Found %d backup storages", len(result))
@@ -317,8 +301,8 @@ func (ops *Operations) DisplayVMStorages() error {
 
 	fmt.Println("\nAvailable VM Disk Storages:")
 	fmt.Println(strings.Repeat("=", 80))
-	fmt.Printf("%-3s %-15s %-10s %-10s %-20s %-15s\n",
-		"#", "Storage", "Type", "Status", "Content Types", "Free Space")
+	fmt.Printf("%-3s %-15s %-16s %-10s %-10s %-20s %-15s\n",
+		"#", "Storage", "Node", "Type", "Status", "Content Types", "Free Space")
 	fmt.Println(strings.Repeat("-", 80))
 
 	for i, storage := range storages {
@@ -332,8 +316,8 @@ func (ops *Operations) DisplayVMStorages() error {
 			freeSpace = fmt.Sprintf("%.1f GB", storage.AvailableGB)
 		}
 
-		fmt.Printf("%-3d %-15s %-10s %-10s %-20s %-15s\n",
-			i+1, storage.Name, storage.Type, status, storage.ContentTypes, freeSpace)
+		fmt.Printf("%-3d %-15s %-16s %-10s %-10s %-20s %-15s\n",
+			i+1, storage.Name, storage.Node, storage.Type, status, storage.ContentTypes, freeSpace)
 	}
 
 	fmt.Println(strings.Repeat("-", 80))
@@ -356,8 +340,8 @@ func (ops *Operations) DisplayBackupStorages() error {
 
 	fmt.Println("\nAvailable Backup Storages:")
 	fmt.Println(strings.Repeat("=", 70))
-	fmt.Printf("%-3s %-15s %-10s %-10s %-15s %-15s\n",
-		"#", "Storage", "Type", "Status", "Free Space", "Total Space")
+	fmt.Printf("%-3s %-15s %-16s %-10s %-10s %-15s %-15s\n",
+		"#", "Storage", "Node", "Type", "Status", "Free Space", "Total Space")
 	fmt.Println(strings.Repeat("-", 70))
 
 	for i, storage := range storages {
@@ -373,8 +357,8 @@ func (ops *Operations) DisplayBackupStorages() error {
 			totalSpace = fmt.Sprintf("%.1f GB", storage.TotalGB)
 		}
 
-		fmt.Printf("%-3d %-15s %-10s %-10s %-15s %-15s\n",
-			i+1, storage.Name, storage.Type, status, freeSpace, totalSpace)
+		fmt.Printf("%-3d %-15s %-16s %-10s %-10s %-15s %-15s\n",
+			i+1, storage.Name, storage.Node, storage.Type, status, freeSpace, totalSpace)
 	}
 
 	fmt.Println(strings.Repeat("-", 70))
