@@ -257,10 +257,18 @@ func (ops *Operations) GetCapacityAnalysis() (*CapacityAnalysis, error) {
 		return nil, err
 	}
 
-	// Index node capacities by name.
+	if len(resources.Nodes) == 0 {
+		return nil, fmt.Errorf("cannot determine capacity: no nodes returned")
+	}
+
+	// Index node capacities by name. Restricted responses may omit hardware
+	// metrics; zero is not a usable capacity reading for an online node.
 	byName := make(map[string]*NodeCapacity)
 	var order []string
 	for _, n := range resources.Nodes {
+		if n.Online && (n.MaxCPU <= 0 || n.MaxMemory <= 0) {
+			return nil, fmt.Errorf("cannot determine capacity for node %q: missing physical CPU or memory data (check Sys.Audit permissions)", n.Node)
+		}
 		nc := &NodeCapacity{
 			Node:       n.Node,
 			Online:     n.Online,
@@ -470,9 +478,11 @@ func parseNodeResource(resMap map[string]interface{}) *NodeResource {
 	// CPU metrics
 	if cpu, ok := resMap["cpu"].(float64); ok {
 		node.CPU = cpu
-		if maxcpu, ok := resMap["maxcpu"].(float64); ok {
-			node.MaxCPU = int(maxcpu)
-			node.CPUPercent = (cpu / maxcpu) * 100
+	}
+	if maxcpu, ok := resMap["maxcpu"].(float64); ok {
+		node.MaxCPU = int(maxcpu)
+		if maxcpu > 0 {
+			node.CPUPercent = (node.CPU / maxcpu) * 100
 		}
 	}
 
