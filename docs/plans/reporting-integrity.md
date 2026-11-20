@@ -1,9 +1,15 @@
 ---
 ticket: ""
-status: implementation_complete
+status: completed
 ---
 
 # Reporting integrity fixes
+
+- [Scope](#scope)
+- [Steps](#steps)
+- [Acceptance](#acceptance)
+- [Compatibility and rollback](#compatibility-and-rollback)
+- [Verification](#verification)
 
 ## Scope
 
@@ -43,9 +49,10 @@ storage also appears once per node; rows are not additive cluster capacity.
 A denied, unavailable or offline node can therefore block name-only backup
 validation even when the selected storage is usable elsewhere. Review identified
 this compatibility risk; silently skipping that node would reintroduce partial
-success. Keep the conservative behavior and cover it with validation tests. Once the implementation
-commit is the topic-branch tip, rollback is `git revert --no-edit HEAD` on this
-branch; do not discard working trees or modify infrastructure to undo code.
+success. Keep the conservative behavior and cover it with validation tests.
+Rollback is `git revert 3b3d9884b38ad5f5c1f74377d40b74e0c4d29ef4` on a
+follow-up branch; do not discard working trees or modify infrastructure to undo
+code.
 
 ## Verification
 
@@ -62,4 +69,9 @@ branch; do not discard working trees or modify infrastructure to undo code.
   `c208d913dca5f592f90e9bcd70da7e5deaadf306`; lint is not claimed to pass.
 - Independent review completed; its offline-node compatibility finding is
   recorded above. No infrastructure mutation or CLI installation was performed.
-- Publication and final remote CI result are pending.
+- Published [PR #3](https://github.com/yg-codes/proxmox-cli/pull/3) from
+  `fix/reporting-integrity` to `main`; no merge or release performed.
+- [Remote CI](https://github.com/yg-codes/proxmox-cli/actions/runs/44683950604)
+  passed for implementation commit
+  `3b3d9884b38ad5f5c1f74377d40b74e0c4d29ef4`. The PR is the handoff pointer
+  for the current head's independent checks and review.
